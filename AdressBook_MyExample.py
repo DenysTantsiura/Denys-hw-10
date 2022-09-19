@@ -2,6 +2,21 @@
 homework 10 test...
 '''
 from collections import UserDict
+import random
+
+
+def my_generator_names(maxs):
+    counter = 0
+    while counter < maxs:
+        yield f"Name_{counter}"
+        counter += 1
+
+
+def my_generator_phones(maxs):
+    counter = 0
+    while counter < maxs:
+        yield "+38(063){:07}".format(counter)
+        counter += 1
 
 
 class AddressBook(UserDict):
@@ -52,6 +67,7 @@ class Record(Name, Phone):  # add remove change  field
                 break
 
 
+'''
 rec0 = Record(Name("Alf"))
 rec1 = Record(Name("Den"), Phone("+380677777777"))
 print(rec1.name.value)
@@ -88,3 +104,37 @@ print(book0['Ann'].name.value)
 print(book0['Ann'].phone[1].value)
 book0['Ann'].add_phone("+380677777784")
 print(book0['Ann'].phone[3].value)
+'''
+
+
+def gen_AddressBook(max_names):
+
+    book0 = AddressBook()
+    counter = 0
+    name = my_generator_names(max_names)
+    phone = my_generator_phones(max_names * 3)
+    while counter < max_names:
+        rec0 = Record(Name(next(name)))
+        phones_quantity = random.choice([1, 2, 3, ])
+
+        while phones_quantity:
+            rec0.add_phone(next(phone))
+            phones_quantity -= 1
+
+        book0.add_record(rec0)
+        counter += 1
+
+    return book0
+
+
+my_first_address_book = gen_AddressBook(10)
+
+
+def test_address_book(address_book):
+    for record in address_book:
+        print(record)
+        for phone in address_book[record].phone:
+            print(phone.value)
+
+
+test_address_book(my_first_address_book)
