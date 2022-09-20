@@ -5,16 +5,26 @@ from collections import UserDict
 import random
 
 
-def my_generator_names(maxs):
+def my_generator_names(quantity_limit: int) -> str:
+    """
+    Simplest generator Names (example: Name_0, Name_1, ...) in limited quantities
+    incoming: quantity_limit (int)
+    return: yield next name
+    """
     counter = 0
-    while counter < maxs:
+    while counter < quantity_limit:
         yield f"Name_{counter}"
         counter += 1
 
 
-def my_generator_phones(maxs):
+def my_generator_phones(quantity_limit: int) -> str:
+    """
+    Simplest generator Phones (example: +38(063)0000000, +38(063)0000001,...) in limited quantities
+    incoming: quantity_limit (int)
+    return: yield next phone
+    """
     counter = 0
-    while counter < maxs:
+    while counter < quantity_limit:
         yield "+38(063){:07}".format(counter)
         counter += 1
 
@@ -27,25 +37,25 @@ class AddressBook(UserDict):
         self.data.update({Record.name.value: Record})
 
 
-class Field:  # super for all fields
+class Field:  # super for all fields ... for the future?
     pass
 
 
 class Name(Field):
     def __init__(self, value):
-        # super().__init__(name)
+        # super().__init__(name) ... for the future?
         self.value = value
 
 
 class Phone(Field):
     def __init__(self, value=None):  # *phone
-        # super().__init__(phone)
+        # super().__init__(phone) ... for the future?
         self.value = value
 
 
 class Record(Name, Phone):  # add remove change  field
 
-    def __init__(self, Name, *Phone):  # *phone
+    def __init__(self, Name, *Phone):
         self.name = Name
         self.phone = list(Phone)
 
@@ -107,8 +117,11 @@ print(book0['Ann'].phone[3].value)
 '''
 
 
-def gen_AddressBook(max_names):
-
+def gen_AddressBook(max_names: int) -> AddressBook:
+    """Simplest generator simplest AddressBook
+    incoming: max_names is quantity limit (int)
+    return: book0 - instance of the filled class AddressBook
+    """
     book0 = AddressBook()
     counter = 0
     name = my_generator_names(max_names)
@@ -127,7 +140,7 @@ def gen_AddressBook(max_names):
     return book0
 
 
-my_first_address_book = gen_AddressBook(10)
+my_first_address_book = gen_AddressBook(16)
 
 
 def test_address_book(address_book):
