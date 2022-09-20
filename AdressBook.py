@@ -117,9 +117,9 @@ def gen_AddressBook(max_names: int) -> AddressBook:
     return book0
 
 
-# cont_dict = AddressBook()
+# contact_dictionary = AddressBook()
 # Next - only for tests... :
-cont_dict = gen_AddressBook(16)  # ! =AddressBook()
+contact_dictionary = gen_AddressBook(16)  # ! =AddressBook()
 
 
 def input_error(handler):
@@ -154,7 +154,7 @@ def input_error(handler):
                 return "The number contains invalid characters\n"
 
         elif handler.__name__ == "h_change":
-            if not cont_dict:
+            if not contact_dictionary:
                 return "No contact records available. You can add records\n"
             if len(user_command) < 4:
                 return "Give me name and 2 phones please (current and new)\n"
@@ -166,7 +166,7 @@ def input_error(handler):
                 return "The number contains invalid characters\n"
 
         elif handler.__name__ == "h_phone":
-            if not cont_dict:
+            if not contact_dictionary:
                 return "No contact records available\n"
             if len(user_command) < 2:
                 return "Give me a name too, please\n"
@@ -176,7 +176,7 @@ def input_error(handler):
                 return "The name can only begin with Latin characters!\n"
 
         elif handler.__name__ == "h_showall":
-            if not cont_dict:
+            if not contact_dictionary:
                 return "No contact records available\n"
 
         try:
@@ -226,7 +226,7 @@ def h_phone(user_command: list) -> str:
     incoming: list of user command (name of user)
     return: phone number of user'''
     phones = ""
-    for phone in cont_dict[user_command[1]].phone:
+    for phone in contact_dictionary[user_command[1]].phone:
         phones += f"{phone.value}; "
     return phones
 
@@ -241,10 +241,10 @@ def h_change(user_command: list) -> str:  # list of str
     name = user_command[1]
     current_phone = user_command[2]
     new_phone = user_command[3]
-    cont_dict[name].change_phone(current_phone, new_phone)
+    contact_dictionary[name].change_phone(current_phone, new_phone)
 
     # with open(helper_opener()[1], "wb") as db_file:
-    #     pickle.dump(cont_dict, db_file)
+    #     pickle.dump(contact_dictionary, db_file)
 
     return "The record has been updated\n"
 
@@ -259,13 +259,13 @@ def h_add(user_command: list) -> str:
     return: string'''
     name = user_command[1]
     new_record = Record(Name(name))
-    cont_dict.add_record(new_record)
+    contact_dictionary.add_record(new_record)
     if len(user_command) > 2:
         for new_phone in user_command[2:]:
-            cont_dict[name].add_phone(new_phone)
+            contact_dictionary[name].add_phone(new_phone)
 
     # with open(helper_opener()[1], "wb") as db_file:
-    #     pickle.dump(cont_dict, db_file)
+    #     pickle.dump(contact_dictionary, db_file)
     return "A record have been added\n"
 
 
@@ -279,10 +279,10 @@ def h_add_phone(user_command: list) -> str:
     return: string'''
     name = user_command[1]
     for new_phone in user_command[2:]:
-        cont_dict[name].add_phone(new_phone)
+        contact_dictionary[name].add_phone(new_phone)
 
     # with open(helper_opener()[1], "wb") as db_file:
-    #     pickle.dump(cont_dict, db_file)
+    #     pickle.dump(contact_dictionary, db_file)
     return "A record have been added\n"
 
 
@@ -298,9 +298,9 @@ def h_showall(_=None) -> str:
     return: string of all users'''
 
     all_list = "Entries in your contact book:"
-    for record in cont_dict:
+    for record in contact_dictionary:
         all_list += f"\n{record} -> phone(s): "
-        for phone in cont_dict[record].phone:
+        for phone in contact_dictionary[record].phone:
             all_list += f"{phone.value}; "
 
     return all_list
@@ -361,11 +361,11 @@ def parser(user_input: str) -> list:
 
 def main():
     """A new address book was generated at the beginning
-    line 112: cont_dict = gen_AddressBook(16)
+    line 112: contact_dictionary = gen_AddressBook(16)
     """
-    # global cont_dict
+    # global contact_dictionary
     # load contact dict if it available:
-    # cont_dict = helper_opener()[0]
+    # contact_dictionary = helper_opener()[0]
 
     while True:
         user_command = input()
