@@ -19,107 +19,108 @@ AddressBook implements the add_record method, which adds a Record to self.data.
 "add phone ..." With this command, the bot saves a new phones to an existing contact record in memory. Instead of ... the user enters the name and phone number(s), necessarily with a space.'''
 
 from collections import UserDict
-import os
-import pickle
-import random
-
-
-def my_generator_names(quantity_limit: int) -> str:
-    """Simplest generator Names (example: Name_0, Name_1, ...) in limited quantities
-    incoming: quantity_limit (int)
-    return: yield next name
-    """
-    counter = 0
-    while counter < quantity_limit:
-        yield f"Name_{counter}"
-        counter += 1
-
-
-def my_generator_phones(quantity_limit: int) -> str:
-    """Simplest generator Phones (example: +38(063)0000000, +38(063)0000001,...) in limited quantities
-    incoming: quantity_limit (int)
-    return: yield next phone
-    """
-    counter = 0
-    while counter < quantity_limit:
-        yield "+38(063){:07}".format(counter)
-        counter += 1
+# import os
+# import pickle
 
 
 class AddressBook(UserDict):
-    def __init__(self):
-        self.data = {}
 
-    def add_record(self, Record):
-        self.data.update({Record.name.value: Record})
+    def add_record(self, record):
+        self.data[record.name.value] = record
 
 
-class Field:  # super for all fields ... for the future?
+class Field:  # super for all fields ... for the future
     pass
 
 
 class Name(Field):
     def __init__(self, value):
-        # super().__init__(name) ... for the future?
+        # super().__init__(name) ... for the future
         self.value = value
 
 
 class Phone(Field):
-    def __init__(self, value=None):  # *phone
-        # super().__init__(phone) ... for the future?
+    def __init__(self, value):
+        # super().__init__(phone) ... for the future
         self.value = value
 
 
-class Record(Name, Phone):  # add remove change  field
+class Record():  # add remove change  field
 
-    def __init__(self, Name, *Phone):
-        self.name = Name
-        self.phone = list(Phone)
+    def __init__(self, name, *phones):
+        self.name = Name(name)
+        self.phones = []
+        if phones:
+            for phone in phones:
+                self.phones.append(Phone(phone))
 
     def add_phone(self, phone_new):
-        self.phone.append(Phone(phone_new))
+        self.phones.append(Phone(phone_new))
 
     def remove_phone(self, phone_to_remove):
-        for current_phone in self.phone:
-            if current_phone.value == phone_to_remove:
-                self.phone.remove(current_phone)
+        for phone in self.phones:
+            if phone.value == phone_to_remove:
+                self.phones.remove(phone)
                 break
 
     def change_phone(self, phone_to_change, phone_new):
-        for current_phone in self.phone:
-            if current_phone.value == phone_to_change:
-                self.phone.insert(self.phone.index(
-                    current_phone), Phone(phone_new))
-                self.phone.remove(current_phone)
+        for index, phone in enumerate(self.phones):
+            if phone.value == phone_to_change:
+                self.phones.insert(index, Phone(phone_new))
+                self.phones.remove(phone)
                 break
 
 
-def gen_AddressBook(max_names: int) -> AddressBook:
-    """Simplest generator simplest AddressBook
-    incoming: max_names is quantity limit (int)
-    return: book0 - instance of the filled class AddressBook
-    """
-    book0 = AddressBook()
-    counter = 0
-    name = my_generator_names(max_names)
-    phone = my_generator_phones(max_names * 3)
-    while counter < max_names:
-        rec0 = Record(Name(next(name)))
-        phones_quantity = random.choice([1, 2, 3, ])
-
-        while phones_quantity:
-            rec0.add_phone(next(phone))
-            phones_quantity -= 1
-
-        book0.add_record(rec0)
-        counter += 1
-
-    return book0
+contact_dictionary = AddressBook()
 
 
-# contact_dictionary = AddressBook()
-# Next - only for tests... :
-contact_dictionary = gen_AddressBook(16)  # ! =AddressBook()
+def validation_add(user_command, number_separators, name):
+    if len(user_command) < 2:
+        return "Give me name OR name and phone please\n"
+    if name[0].isdigit():
+        return "A name cannot begin with a number!\n"
+    elif not name[0].isalpha():
+        return "The name can only begin with Latin characters!\n"
+    if len(user_command) >= 2:
+        for phone_candidate in user_command[2:]:
+            if len([i for i in phone_candidate if i in number_separators]) != len(phone_candidate):
+                return "The number(s) contains invalid characters\n"
+
+
+def validation_add_phone(user_command, number_separators, name):
+    if len(user_command) < 3:
+        return "Give me name and new phone(s) please\n"
+    if name[0].isdigit():
+        return "A name cannot begin with a number!\n"
+    elif not name[0].isalpha():
+        return "The name can only begin with Latin characters!\n"
+    for phone_candidate in user_command[2:]:
+        if len([i for i in phone_candidate if i in number_separators]) != len(phone_candidate):
+            return "The number(s) contains invalid characters\n"
+
+
+def validation_change(user_command, number_separators, name):
+    if not contact_dictionary:
+        return "No contact records available. You can add records\n"
+    if len(user_command) < 4:
+        return "Give me name and 2 phones please (current and new)\n"
+    if name[0].isdigit():
+        return "A name cannot begin with a number!\n"
+    elif not name[0].isalpha():
+        return "The name can only begin with Latin characters!\n"
+    if len([i for i in user_command[2] if i in number_separators]) != len(user_command[2]):
+        return "The number contains invalid characters\n"
+
+
+def validation_phone(user_command, name):
+    if not contact_dictionary:
+        return "No contact records available\n"
+    if len(user_command) < 2:
+        return "Give me a name too, please\n"
+    if name[0].isdigit():
+        return "A name cannot begin with a number!\n"
+    elif not name[0].isalpha():
+        return "The name can only begin with Latin characters!\n"
 
 
 def input_error(handler):
@@ -130,52 +131,22 @@ def input_error(handler):
     def exception_function(user_command):
 
         number_separators = "+()-0123456789"
+        if len(user_command) > 1:
+            name = user_command[1]
 
-        if handler.__name__ == "h_add":
-            if len(user_command) < 2:
-                return "Give me name OR name and phone please\n"
-            if user_command[1][0].isdigit():
-                return "A name cannot begin with a number!\n"
-            elif not user_command[1][0].isalpha():
-                return "The name can only begin with Latin characters!\n"
-            if len(user_command) >= 4:
-                for phone_candidate in user_command[4:]:
-                    if len([i for i in phone_candidate if i in number_separators]) != len(phone_candidate):
-                        return "The number(s) contains invalid characters\n"
+        if handler.__name__ == "handler_add" and validation_add(user_command, number_separators, name):
+            return validation_add(user_command, number_separators, name)
 
-        elif handler.__name__ == "h_add_phone":
-            if len(user_command) < 3:
-                return "Give me name and new phone(s) please\n"
-            if user_command[1][0].isdigit():
-                return "A name cannot begin with a number!\n"
-            elif not user_command[1][0].isalpha():
-                return "The name can only begin with Latin characters!\n"
-            if len([i for i in user_command[2] if i in number_separators]) != len(user_command[2]):
-                return "The number contains invalid characters\n"
+        elif handler.__name__ == "handler_add_phone" and validation_add_phone(user_command, number_separators, name):
+            return validation_add_phone(user_command, number_separators, name)
 
-        elif handler.__name__ == "h_change":
-            if not contact_dictionary:
-                return "No contact records available. You can add records\n"
-            if len(user_command) < 4:
-                return "Give me name and 2 phones please (current and new)\n"
-            if user_command[1][0].isdigit():
-                return "A name cannot begin with a number!\n"
-            elif not user_command[1][0].isalpha():
-                return "The name can only begin with Latin characters!\n"
-            if len([i for i in user_command[2] if i in number_separators]) != len(user_command[2]):
-                return "The number contains invalid characters\n"
+        elif handler.__name__ == "handler_change" and validation_change(user_command, number_separators, name):
+            return validation_change(user_command, number_separators, name)
 
-        elif handler.__name__ == "h_phone":
-            if not contact_dictionary:
-                return "No contact records available\n"
-            if len(user_command) < 2:
-                return "Give me a name too, please\n"
-            if user_command[1][0].isdigit():
-                return "A name cannot begin with a number!\n"
-            elif not user_command[1][0].isalpha():
-                return "The name can only begin with Latin characters!\n"
+        elif handler.__name__ == "handler_phone" and validation_phone(user_command, name):
+            return validation_change(user_command, name)
 
-        elif handler.__name__ == "h_showall":
+        elif handler.__name__ == "handler_showall":
             if not contact_dictionary:
                 return "No contact records available\n"
 
@@ -202,37 +173,22 @@ def input_error(handler):
     return exception_function
 
 
-def helper_try_open_file(path_file: str) -> str:
-    '''Checks if the database file exists and checks if the filename is free if not
-    incoming: path_file is name of file
-    return: name of file'''
-    stored_dict = {}
-    if os.path.isdir(path_file):
-        while os.path.exists(path_file):
-            path_file = "new_one_" + path_file
-
-    if not os.path.isfile(path_file):
-        with open(path_file, "ab") as words_file:
-            pickle.dump(stored_dict, words_file)
-
-    return path_file
-
-
 @input_error
-def h_phone(user_command: list) -> str:
+def handler_phone(user_command: list) -> str:
     '''"phone ...." With this command, the bot outputs the phone number for the specified 
     contact to the console. Instead of ... the user enters the name of the contact 
     whose number should be displayed.
     incoming: list of user command (name of user)
     return: phone number of user'''
     phones = ""
-    for phone in contact_dictionary[user_command[1]].phone:
+    name = user_command[1]
+    for phone in (contact_dictionary[name]).phones:
         phones += f"{phone.value}; "
     return phones
 
 
 @input_error
-def h_change(user_command: list) -> str:  # list of str
+def handler_change(user_command: list) -> str:  # list of str
     '''"change ..." With this command, the bot stores the new phone number 
     of the existing contact in memory. Instead of ... the user enters 
     the name and phone numbers (current and new), necessarily with a space.
@@ -250,7 +206,7 @@ def h_change(user_command: list) -> str:  # list of str
 
 
 @input_error
-def h_add(user_command: list) -> str:
+def handler_add(user_command: list) -> str:
     '''"add ...". With this command, the bot saves 
     a new contact in memory (in the dictionary, for 
     example). Instead of ... the user enters the name 
@@ -258,10 +214,11 @@ def h_add(user_command: list) -> str:
     incoming: list of user command (name of user)
     return: string'''
     name = user_command[1]
-    new_record = Record(Name(name))
+    new_record = Record(name)  # Record(Name(name))
     contact_dictionary.add_record(new_record)
     if len(user_command) > 2:
-        for new_phone in user_command[2:]:
+        phones = user_command[2:]
+        for new_phone in phones:
             contact_dictionary[name].add_phone(new_phone)
 
     # with open(helper_opener()[1], "wb") as db_file:
@@ -270,7 +227,7 @@ def h_add(user_command: list) -> str:
 
 
 @input_error
-def h_add_phone(user_command: list) -> str:
+def handler_add_phone(user_command: list) -> str:
     '''"add ...". With this command, the bot saves 
     a new phones to contact in memory (in the dictionary, for 
     example). Instead of ... the user enters the name 
@@ -278,7 +235,8 @@ def h_add_phone(user_command: list) -> str:
     incoming: list of user command (name of user)
     return: string'''
     name = user_command[1]
-    for new_phone in user_command[2:]:
+    phones = user_command[2:]
+    for new_phone in phones:
         contact_dictionary[name].add_phone(new_phone)
 
     # with open(helper_opener()[1], "wb") as db_file:
@@ -286,59 +244,46 @@ def h_add_phone(user_command: list) -> str:
     return "A record have been added\n"
 
 
-def h_exit(_=None) -> str:
+def handler_exit(_=None) -> str:
     return "Good bye!"
 
 
 @input_error
-def h_showall(_=None) -> str:
+def handler_showall(_=None) -> str:
     '''"show all". With this command, the bot outputs all saved 
     contacts with phone numbers to the console.
     incoming: not_matter: any
     return: string of all users'''
 
     all_list = "Entries in your contact book:"
-    for record in contact_dictionary:
-        all_list += f"\n{record} -> phone(s): "
-        for phone in contact_dictionary[record].phone:
+    for name in contact_dictionary:
+        all_list += f"\n{name} -> phone(s): "  # name.value
+        for phone in contact_dictionary[name].phones:
             all_list += f"{phone.value}; "
 
     return all_list
-
-
-def helper_opener() -> tuple:
-    '''loads a list of users from a file
-    incoming: None
-    return: list of user dictionary and new path file(database)'''
-    path_file = "ABook.bdata"
-    new_path_file = helper_try_open_file(path_file)
-
-    with open(new_path_file, "rb") as f:
-        stored_dict = pickle.load(f)
-
-    return (stored_dict, new_path_file)
 
 
 def main_handler(user_command: list):
     '''All possible bot commands
     incoming: user command
     return: function according to the command'''
-    all_command = {"hello": h_hello,
-                   "add": h_add,
-                   "addphone": h_add_phone,
-                   "change": h_change,
-                   "phone": h_phone,
-                   "showall": h_showall,
-                   "goodbye": h_exit,
-                   "close": h_exit,
-                   "exit": h_exit}
+    all_command = {"hello": handler_hello,
+                   "add": handler_add,
+                   "addphone": handler_add_phone,
+                   "change": handler_change,
+                   "phone": handler_phone,
+                   "showall": handler_showall,
+                   "goodbye": handler_exit,
+                   "close": handler_exit,
+                   "exit": handler_exit}
 
     if all_command.get(user_command[0].lower(), "It is unclear") != "It is unclear":
         return all_command.get(user_command[0].lower())(user_command)
     return "It is unclear"
 
 
-def h_hello(_=None) -> str:
+def handler_hello(_=None) -> str:
     return "How can I help you?\n"
 
 
