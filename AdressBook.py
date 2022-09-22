@@ -19,6 +19,7 @@ AddressBook implements the add_record method, which adds a Record to self.data.
 "add phone ..." With this command, the bot saves a new phones to an existing contact record in memory. Instead of ... the user enters the name and phone number(s), necessarily with a space.'''
 
 from collections import UserDict
+import re
 # import os
 # import pickle
 
@@ -52,7 +53,7 @@ class Record():  # add remove change  field
         self.phones = []
         if phones:
             for phone in phones:
-                self.phones.append(Phone(phone))
+                self.add_phone(phone)
 
     def add_phone(self, phone_new):
         self.phones.append(Phone(phone_new))
@@ -74,20 +75,22 @@ class Record():  # add remove change  field
 contact_dictionary = AddressBook()
 
 
-def validation_add(user_command, number_separators, name):
+def validation_add(user_command, number_format, name):
     if len(user_command) < 2:
         return "Give me name OR name and phone please\n"
+    if name in contact_dictionary:
+        return "Such an entry is already in the book. Add or change a number."
     if name[0].isdigit():
         return "A name cannot begin with a number!\n"
     elif not name[0].isalpha():
         return "The name can only begin with Latin characters!\n"
     if len(user_command) >= 2:
         for phone_candidate in user_command[2:]:
-            if len([i for i in phone_candidate if i in number_separators]) != len(phone_candidate):
-                return "The number(s) contains invalid characters\n"
+            if not re.search(number_format, phone_candidate):
+                return "The number(s) is invalid.\nThe number must be in the following format with 12 digits(d): +dd(ddd)ddd-dddd\n"
 
 
-def validation_add_phone(user_command, number_separators, name):
+def validation_add_phone(user_command, number_format, name):
     if len(user_command) < 3:
         return "Give me name and new phone(s) please\n"
     if name[0].isdigit():
@@ -95,11 +98,11 @@ def validation_add_phone(user_command, number_separators, name):
     elif not name[0].isalpha():
         return "The name can only begin with Latin characters!\n"
     for phone_candidate in user_command[2:]:
-        if len([i for i in phone_candidate if i in number_separators]) != len(phone_candidate):
-            return "The number(s) contains invalid characters\n"
+        if not re.search(number_format, phone_candidate):
+            return "The number(s) is invalid.\nThe number must be in the following format with 12 digits(d): +dd(ddd)ddd-dddd\n"
 
 
-def validation_change(user_command, number_separators, name):
+def validation_change(user_command, number_format, name):
     if not contact_dictionary:
         return "No contact records available. You can add records\n"
     if len(user_command) < 4:
@@ -108,8 +111,8 @@ def validation_change(user_command, number_separators, name):
         return "A name cannot begin with a number!\n"
     elif not name[0].isalpha():
         return "The name can only begin with Latin characters!\n"
-    if len([i for i in user_command[2] if i in number_separators]) != len(user_command[2]):
-        return "The number contains invalid characters\n"
+    if not re.search(number_format, user_command[2]):
+        return "The number(s) is invalid: contains invalid characters or incorrect length\nThe number must be in the following format with 12 digits(d): +dd(ddd)ddd-dddd\n"
 
 
 def validation_phone(user_command, name):
@@ -130,25 +133,30 @@ def input_error(handler):
     # => user input command items in the list
     def exception_function(user_command):
 
-        number_separators = "+()-0123456789"
+        number_format = r'^\+[0-9)(-]{12,16}$'
+        validation = None
         if len(user_command) > 1:
             name = user_command[1]
 
-        if handler.__name__ == "handler_add" and validation_add(user_command, number_separators, name):
-            return validation_add(user_command, number_separators, name)
+        if handler.__name__ == "handler_add":
+            validation = validation_add(user_command, number_format, name)
 
-        elif handler.__name__ == "handler_add_phone" and validation_add_phone(user_command, number_separators, name):
-            return validation_add_phone(user_command, number_separators, name)
+        elif handler.__name__ == "handler_add_phone":
+            validation = validation_add_phone(
+                user_command, number_format, name)
 
-        elif handler.__name__ == "handler_change" and validation_change(user_command, number_separators, name):
-            return validation_change(user_command, number_separators, name)
+        elif handler.__name__ == "handler_change":
+            validation = validation_change(user_command, number_format, name)
 
-        elif handler.__name__ == "handler_phone" and validation_phone(user_command, name):
-            return validation_change(user_command, name)
+        elif handler.__name__ == "handler_phone":
+            validation = validation_phone(user_command, name)
 
         elif handler.__name__ == "handler_showall":
             if not contact_dictionary:
                 return "No contact records available\n"
+
+        if validation:
+            return validation
 
         try:
             result = handler(user_command)
