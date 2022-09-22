@@ -35,20 +35,33 @@ class Field:  # super for all fields ... for the future
 
 
 class Name(Field):
+
     def __init__(self, value):
         # super().__init__(name) ... for the future
         self.value = value
 
 
 class Phone(Field):
+
+    def __preformating(self, value):
+
+        value = value.replace("-", "")
+        if value[3] != "(":
+            value = "(".join((value[:3], value[3:]))
+        if value[7] != ")":
+            value = ")".join((value[:7], value[7:]))
+
+        return value
+
     def __init__(self, value):
         # super().__init__(phone) ... for the future
-        self.value = value
+        self.value = self.__preformating(value)
 
 
 class Record():  # add remove change  field
 
     def __init__(self, name, *phones):
+
         self.name = Name(name)
         self.phones = []
         if phones:
@@ -56,34 +69,65 @@ class Record():  # add remove change  field
                 self.add_phone(phone)
 
     def add_phone(self, phone_new):
+
+        phone_new = Phone(phone_new).value
+        for phone in self.phones:
+            if phone_new == phone.value:
+                print(f"{phone_new} already recorded for {self.name.value}")
+                return False
+
         self.phones.append(Phone(phone_new))
+        return True
 
     def remove_phone(self, phone_to_remove):
+
+        phone_to_remove = Phone(phone_to_remove).value
         for phone in self.phones:
             if phone.value == phone_to_remove:
                 self.phones.remove(phone)
-                break
+                return True  # Is it correct instead of a break?
 
     def change_phone(self, phone_to_change, phone_new):
+
+        phone_to_change = Phone(phone_to_change).value
+        phone_new = Phone(phone_new).value
+        verdict = False
+
+        for phone in self.phones:
+
+            if phone.value == phone_new:
+                return (False, f"{phone_new} already recorded for {self.name.value}")
+
+            if phone.value == phone_to_change:
+                verdict = True
+
+        if not verdict:
+            return (verdict, f"{phone_to_change} not specified in the contact {self.name.value}")
+
         for index, phone in enumerate(self.phones):
             if phone.value == phone_to_change:
-                self.phones.insert(index, Phone(phone_new))
                 self.phones.remove(phone)
-                break
+                self.phones.insert(index, Phone(phone_new))
+                return (True,)  # Is it correct instead of a break?
 
 
 contact_dictionary = AddressBook()
 
 
 def validation_add(user_command, number_format, name):
+
     if len(user_command) < 2:
         return "Give me name OR name and phone please\n"
+
     if name in contact_dictionary:
         return "Such an entry is already in the book. Add or change a number."
+
     if name[0].isdigit():
         return "A name cannot begin with a number!\n"
+
     elif not name[0].isalpha():
         return "The name can only begin with Latin characters!\n"
+
     if len(user_command) >= 2:
         for phone_candidate in user_command[2:]:
             if not re.search(number_format, phone_candidate):
@@ -91,37 +135,50 @@ def validation_add(user_command, number_format, name):
 
 
 def validation_add_phone(user_command, number_format, name):
+
     if len(user_command) < 3:
         return "Give me name and new phone(s) please\n"
+
     if name[0].isdigit():
         return "A name cannot begin with a number!\n"
+
     elif not name[0].isalpha():
         return "The name can only begin with Latin characters!\n"
+
     for phone_candidate in user_command[2:]:
         if not re.search(number_format, phone_candidate):
             return "The number(s) is invalid.\nThe number must be in the following format with 12 digits(d): +dd(ddd)ddd-dddd\n"
 
 
 def validation_change(user_command, number_format, name):
+
     if not contact_dictionary:
         return "No contact records available. You can add records\n"
+
     if len(user_command) < 4:
         return "Give me name and 2 phones please (current and new)\n"
+
     if name[0].isdigit():
         return "A name cannot begin with a number!\n"
+
     elif not name[0].isalpha():
         return "The name can only begin with Latin characters!\n"
+
     if not re.search(number_format, user_command[2]):
         return "The number(s) is invalid: contains invalid characters or incorrect length\nThe number must be in the following format with 12 digits(d): +dd(ddd)ddd-dddd\n"
 
 
 def validation_phone(user_command, name):
+
     if not contact_dictionary:
         return "No contact records available\n"
+
     if len(user_command) < 2:
         return "Give me a name too, please\n"
+
     if name[0].isdigit():
         return "A name cannot begin with a number!\n"
+
     elif not name[0].isalpha():
         return "The name can only begin with Latin characters!\n"
 
@@ -192,6 +249,7 @@ def handler_phone(user_command: list) -> str:
     name = user_command[1]
     for phone in (contact_dictionary[name]).phones:
         phones += f"{phone.value}; "
+
     return phones
 
 
@@ -205,12 +263,14 @@ def handler_change(user_command: list) -> str:  # list of str
     name = user_command[1]
     current_phone = user_command[2]
     new_phone = user_command[3]
-    contact_dictionary[name].change_phone(current_phone, new_phone)
+    verdict = contact_dictionary[name].change_phone(current_phone, new_phone)
 
     # with open(helper_opener()[1], "wb") as db_file:
     #     pickle.dump(contact_dictionary, db_file)
-
-    return "The record has been updated\n"
+    if verdict[0]:
+        return "The record has been updated\n"
+    else:
+        return f"No changes have been made\n{verdict[1]}"
 
 
 @input_error
@@ -226,12 +286,14 @@ def handler_add(user_command: list) -> str:
     contact_dictionary.add_record(new_record)
     if len(user_command) > 2:
         phones = user_command[2:]
+        verdict = False
         for new_phone in phones:
-            contact_dictionary[name].add_phone(new_phone)
-
+            verdict = contact_dictionary[name].add_phone(new_phone) or verdict
+        if not verdict:
+            return "There were no new entries to add\n"
     # with open(helper_opener()[1], "wb") as db_file:
     #     pickle.dump(contact_dictionary, db_file)
-    return "A record have been added\n"
+    return "A record(s) have been added\n"
 
 
 @input_error
@@ -244,9 +306,11 @@ def handler_add_phone(user_command: list) -> str:
     return: string'''
     name = user_command[1]
     phones = user_command[2:]
+    verdict = False
     for new_phone in phones:
-        contact_dictionary[name].add_phone(new_phone)
-
+        verdict = contact_dictionary[name].add_phone(new_phone) or verdict
+    if not verdict:
+        return "There were no new entries to add\n"
     # with open(helper_opener()[1], "wb") as db_file:
     #     pickle.dump(contact_dictionary, db_file)
     return "A record have been added\n"
@@ -288,6 +352,7 @@ def main_handler(user_command: list):
 
     if all_command.get(user_command[0].lower(), "It is unclear") != "It is unclear":
         return all_command.get(user_command[0].lower())(user_command)
+
     return "It is unclear"
 
 
@@ -309,6 +374,7 @@ def parser(user_input: str) -> list:
     if len(words) >= 2 and words[0].lower() == "add" and words[1].lower() == "phone":
         words = ["addphone"] + words[2:]
     words[0] = words[0].lower()
+
     return words
 
 
